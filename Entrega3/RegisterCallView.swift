@@ -24,6 +24,11 @@ struct CommitmentRequest: Codable {
 struct RegisterCallView: View {
     private let donorID = 1
     private let service = CallService()
+    private let caritasColor = Color(
+        red: 0.00,
+        green: 0.65,
+        blue: 0.72
+    )
     
     @State private var selectedResult: CallResult = .promise
     @State private var amount: String = ""
@@ -36,6 +41,8 @@ struct RegisterCallView: View {
     @State private var isLoading = false
     @State private var isSubmitting = false
     @State private var message: UserMessage?
+    @State private var pendingRequest: CallRequest?
+    @State private var isShowingConfirmation = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -66,6 +73,25 @@ struct RegisterCallView: View {
                 message: Text(message.body),
                 dismissButton: .default(Text("Aceptar"))
             )
+        }
+        .confirmationDialog(
+            "¿Deseas registrar esta llamada?",
+            isPresented: $isShowingConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Registrar llamada") {
+                guard let pendingRequest else { return }
+
+                Task {
+                    await submitCall(pendingRequest)
+                }
+            }
+
+            Button("Cancelar", role: .cancel) {
+                pendingRequest = nil
+            }
+        } message: {
+            Text(confirmationMessage)
         }
     }
     
@@ -162,6 +188,7 @@ struct RegisterCallView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .tint(caritasColor)
         }
     }
     
@@ -216,6 +243,7 @@ struct RegisterCallView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .tint(caritasColor)
 
             if !isSinglePayment {
                 HStack {
@@ -269,9 +297,7 @@ struct RegisterCallView: View {
     
     private var continueButton: some View {
         Button {
-            Task {
-                await submitCall()
-            }
+            prepareSubmission()
         } label: {
             if isSubmitting {
                 ProgressView()
@@ -308,9 +334,12 @@ struct RegisterCallView: View {
 
     private func buildRequest() throws -> CallRequest {
         if selectedResult == .promise {
-            guard let paymentMethodID = selectedPaymentMethodID,
-                  let frequencyID = selectedFrequencyID else {
-                throw FormValidationError.missingOptions
+            guard let paymentMethodID = selectedPaymentMethodID else {
+                throw FormValidationError.missingPaymentMethod
+            }
+
+            guard let frequencyID = selectedFrequencyID else {
+                throw FormValidationError.missingFrequency
             }
 
             guard let parsedAmount = Double(amount), parsedAmount > 0 else {
@@ -318,7 +347,7 @@ struct RegisterCallView: View {
             }
 
             if !isSinglePayment && selectedFrequencyTypeID == nil {
-                throw FormValidationError.missingOptions
+                throw FormValidationError.missingFrequencyType
             }
 
             let commitment = CommitmentRequest(
@@ -340,6 +369,48 @@ struct RegisterCallView: View {
                 resultado: selectedResult.apiValue,
                 comentarios: comments.isEmpty ? nil : comments,
                 compromiso: nil
+            )
+        }
+    }
+
+    private var confirmationMessage: String {
+        guard let request = pendingRequest else { return "" }
+
+        var details = ["Resultado: \(selectedResult.displayName)"]
+
+        if let commitment = request.compromiso {
+            details.append(
+                "Monto: \(commitment.importe.formatted(.currency(code: "MXN")))"
+            )
+
+            if let paymentMethod = formOptions?.paymentMethods.first(where: {
+                $0.id == commitment.id_forma_pago
+            }) {
+                details.append("Método de pago: \(paymentMethod.nombre)")
+            }
+
+            if let frequency = formOptions?.frequencies.first(where: {
+                $0.id == selectedFrequencyID
+            }) {
+                details.append("Frecuencia: \(frequency.nombre)")
+            }
+        }
+
+        if let requestComments = request.comentarios {
+            details.append("Comentarios: \(requestComments)")
+        }
+
+        return details.joined(separator: "\n")
+    }
+
+    private func prepareSubmission() {
+        do {
+            pendingRequest = try buildRequest()
+            isShowingConfirmation = true
+        } catch {
+            message = UserMessage(
+                title: "Revisa la información",
+                body: error.localizedDescription
             )
         }
     }
@@ -369,14 +440,16 @@ struct RegisterCallView: View {
     }
 
     @MainActor
-    private func submitCall() async {
+    private func submitCall(_ request: CallRequest) async {
         guard !isSubmitting else { return }
 
-        do {
-            let request = try buildRequest()
-            isSubmitting = true
-            defer { isSubmitting = false }
+        isSubmitting = true
+        defer {
+            isSubmitting = false
+            pendingRequest = nil
+        }
 
+        do {
             let response = try await service.registerCall(
                 donorID: donorID,
                 request: request
@@ -402,14 +475,20 @@ private struct UserMessage: Identifiable {
 
 private enum FormValidationError: LocalizedError {
     case invalidAmount
-    case missingOptions
+    case missingPaymentMethod
+    case missingFrequency
+    case missingFrequencyType
 
     var errorDescription: String? {
         switch self {
         case .invalidAmount:
             return "Ingresa un monto mayor que cero."
-        case .missingOptions:
-            return "Selecciona todas las opciones requeridas."
+        case .missingPaymentMethod:
+            return "Selecciona un método de pago."
+        case .missingFrequency:
+            return "Selecciona una frecuencia."
+        case .missingFrequencyType:
+            return "Selecciona un tipo de frecuencia."
         }
     }
 }
