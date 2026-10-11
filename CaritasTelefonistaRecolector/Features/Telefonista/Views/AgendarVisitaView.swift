@@ -121,7 +121,7 @@ struct AgendarVisitaView: View {
             do {
                 municipios = try await obtenerMunicipios()
             } catch {
-                mensajeAlerta = "No se pudieron cargar los municipios. Revisa tu conexión."
+                mensajeAlerta = "Ha ocurrido un error."
                 mostrarAlerta.toggle()
             }
         }
@@ -178,7 +178,7 @@ struct AgendarVisitaView: View {
                 mensajeConfirmacion = "Visita agendada: \(compromiso.donante), \(dia) a las \(visita.hora). Zona \(visita.zona)."
                 mostrarConfirmacion.toggle()
             } catch {
-                mensajeAlerta = "No se pudo agendar la visita. Revisa tu conexión e intenta de nuevo."
+                mensajeAlerta = "Ha ocurrido un error."
                 mostrarAlerta.toggle()
             }
             guardando = false
@@ -207,12 +207,5 @@ struct AgendarVisitaView: View {
 }
 
 #Preview {
-    NavigationStack {
-        AgendarVisitaView(compromiso: Compromiso(idDonativo: 1,
-                                                 donante: "Patricia Elizondo Salinas",
-                                                 monto: 1500,
-                                                 formaPago: "Efectivo",
-                                                 frecuencia: "Permanente · Mensual"),
-                          registrandoLlamada: .constant(true))
-    }
+    PruebaAgendarVisitaView()
 }
