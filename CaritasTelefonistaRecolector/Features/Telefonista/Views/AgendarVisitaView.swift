@@ -318,5 +318,5 @@ struct AgendarVisitaView: View {
 }
 
 #Preview {
-    PruebaAgendarVisitaView()
+    LoginView()
 }
