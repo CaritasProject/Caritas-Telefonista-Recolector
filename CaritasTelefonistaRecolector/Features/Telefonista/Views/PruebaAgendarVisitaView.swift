@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Pantalla de prueba: inicia sesión y después abre Agendar visita con un
-// compromiso real de la base. Se borra cuando exista el Login.
+// Pantalla de prueba: inicia sesión y después abre Agendar visita con el
+// compromiso 541 de la base. Se borra cuando exista el Login.
 struct PruebaAgendarVisitaView: View {
     @State private var sesionIniciada = false
     @State private var registrandoLlamada = true
@@ -10,12 +10,7 @@ struct PruebaAgendarVisitaView: View {
     var body: some View {
         NavigationStack {
             if sesionIniciada {
-                AgendarVisitaView(compromiso: Compromiso(idDonativo: 541,
-                                                         donante: "María Luisa Reyna Montemayor",
-                                                         monto: 2900,
-                                                         formaPago: "Efectivo",
-                                                         frecuencia: "Permanente · Mensual"),
-                                  registrandoLlamada: $registrandoLlamada)
+                AgendarVisitaView(idDonativo: 541, registrandoLlamada: $registrandoLlamada)
             } else {
                 ProgressView("Iniciando sesión de prueba…")
             }

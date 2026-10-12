@@ -14,7 +14,7 @@ Aplicación iOS (SwiftUI) para los roles operativos de **Telefonista** y **Recol
 | Ambos | Login | Correo institucional y contraseña; el rol define la pantalla de entrada. |
 | Telefonista | Llamadas del día | Donantes por llamar y contactados hoy. |
 | Telefonista | Registrar llamada | Resultado, compromiso, forma de pago y frecuencia. |
-| Telefonista | Agendar visita | Fecha, hora y dirección; la zona sale del municipio. Solo para pagos en efectivo o cheque. |
+| Telefonista | Agendar visita | Monto comprometido resaltado; fecha, hora y dirección con vista en el mapa; la zona sale del municipio. Pide confirmación antes de guardar y al terminar regresa a Llamadas del día. Solo para pagos en efectivo o cheque. |
 | Recolector | Cobros del día | Ruta por horario con dirección e importe. |
 | Recolector | Registrar visita | Cobrado, donante ausente o cancelado. |
 | Ambos | Perfil | Hoja desde el avatar con los datos del usuario y cerrar sesión. |
@@ -98,6 +98,7 @@ func obtenerMunicipios() async throws -> [Municipio] {
 
 | Método | Ruta | Uso |
 |---|---|---|
+| GET | `/visitas/compromisos/<id_donativo>` | Donante, monto, forma de pago, frecuencia y visita pendiente del compromiso (solo rol Telefonista). |
 | GET | `/visitas/municipios` | Municipios con su zona de recolección. |
 | POST | `/visitas` | Agenda la visita (solo rol Telefonista). |
 
@@ -114,4 +115,6 @@ Cuerpo del POST:
 }
 ```
 
-Registrar llamada guarda primero la llamada y el compromiso, y después abre Agendar visita con `AgendarVisitaView(compromiso:registrandoLlamada:)`.
+Registrar llamada guarda primero la llamada y el compromiso, y después abre Agendar visita con `AgendarVisitaView(idDonativo:registrandoLlamada:)`. La pantalla pide los datos del compromiso a la API con ese id.
+
+El botón "Ver en el mapa" busca las coordenadas de la dirección con `MKGeocodingRequest` (MapKit, iOS 26) y muestra un pin. No usa la ubicación del teléfono, así que no pide permiso.
