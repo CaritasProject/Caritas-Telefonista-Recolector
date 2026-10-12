@@ -1,10 +1,10 @@
 import Foundation
 
-struct CredencialesPrueba: Codable {
+struct Credenciales: Codable {
     var correo: String
     var password: String
 }
 
-struct SesionPrueba: Codable {
+struct Sesion: Codable {
     var token: String
 }

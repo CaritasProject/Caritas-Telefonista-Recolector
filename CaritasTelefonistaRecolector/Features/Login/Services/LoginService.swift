@@ -1,14 +1,12 @@
 import Foundation
 
-// Solo para probar Agendar visita mientras no exista el Login: entra con la
-// cuenta de demostración del prototipo y guarda el token.
-func iniciarSesionDePrueba() async throws {
+func iniciarSesion(correo: String, password: String) async throws {
     guard let url = URL(string: "\(APIClient.urlBase)/auth/login") else {
         print("URL incorrecto")
         throw URLError(.badURL)
     }
 
-    let credenciales = CredencialesPrueba(correo: "laura.rios@caritas.org.mx", password: "Telefonista2026")
+    let credenciales = Credenciales(correo: correo, password: password)
 
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
@@ -28,6 +26,6 @@ func iniciarSesionDePrueba() async throws {
     }
 
     let jsonDecoder = JSONDecoder()
-    let sesion = try jsonDecoder.decode(SesionPrueba.self, from: data)
+    let sesion = try jsonDecoder.decode(Sesion.self, from: data)
     APIClient.tokenSesion = sesion.token
 }
