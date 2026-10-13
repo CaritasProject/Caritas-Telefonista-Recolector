@@ -1,23 +1,22 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var sesionIniciada = false
+    @State private var rol = ""
+
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "person.2.badge.gearshape.fill")
-                    .imageScale(.large)
-                    .foregroundStyle(.tint)
-                    .font(.system(size: 50))
-                
-                Text("Cáritas de Monterrey")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("Módulo: Telefonista y Recolector")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        if sesionIniciada {
+            NavigationStack {
+                if rol == "TELEFONISTA" {
+                    SeleccionarDonanteView()
+                } else if rol == "RECOLECTOR" {
+                    SeleccionarCobroView()
+                } else {
+                    Text("Este usuario no tiene acceso a la app.")
+                }
             }
-            .padding()
+        } else {
+            LoginView(sesionIniciada: $sesionIniciada, rol: $rol)
         }
     }
 }

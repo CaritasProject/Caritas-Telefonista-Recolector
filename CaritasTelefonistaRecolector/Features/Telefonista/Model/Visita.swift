@@ -1,11 +1,12 @@
 import Foundation
 
-struct Compromiso {
+struct Compromiso: Codable {
     var idDonativo: Int
     var donante: String
     var monto: Double
     var formaPago: String
     var frecuencia: String
+    var visitaPendiente: Visita?
 }
 
 struct Municipio: Codable, Identifiable {
