@@ -1,5 +1,20 @@
 import Foundation
 
+func obtenerCobros() async throws -> [Cobro] {
+    guard let url = URL(string: "\(APIClient.urlBase)/cobros") else {
+        print("URL incorrecto")
+        throw URLError(.badURL)
+    }
+
+    var request = URLRequest(url: url)
+    if let token = APIClient.tokenSesion {
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    }
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    return try JSONDecoder().decode([Cobro].self, from: data)
+}
+
 func registrarVisita(registro: RegistroVisita) async throws -> VisitaRegistrada {
     guard let url = URL(string: "\(APIClient.urlBase)/cobros/\(registro.idCobro)/visita") else {
         print("URL incorrecto")
