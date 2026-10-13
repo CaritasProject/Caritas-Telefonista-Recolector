@@ -1,11 +1,16 @@
 import SwiftUI
 
 struct RegistrarVisitaView: View {
-    var cobro: Cobro
+    var idCobro: Int
 
     var onRegistrada: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+
+    @State private var cobro: Cobro? = nil
+    @State private var historial: [PagoAnterior] = []
+    @State private var cargando = true
+    @State private var errorCarga: String? = nil
 
     @State private var resultado: ResultadoVisita = .cobrado
     @State private var montoCobrado = ""
@@ -17,24 +22,21 @@ struct RegistrarVisitaView: View {
     @State private var mostrarConfirmacionCancelar = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                tarjetaCobro
-                seccionResultado
-
-                if resultado == .cobrado {
-                    seccionMonto
-                }
-
-                botonGuardar
+        Group {
+            if cargando {
+                ProgressView("Cargando cobro…")
+            } else if let cobro {
+                contenido(cobro)
+            } else {
+                vistaError
             }
-            .padding(16)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.fondo)
         .navigationTitle("Registrar visita")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            montoCobrado = String(format: "%.0f", cobro.importe)
+        .task {
+            await cargar()
         }
         .confirmationDialog(
             "¿Cancelar el cobro?",
@@ -55,7 +57,48 @@ struct RegistrarVisitaView: View {
         }
     }
 
-    private var tarjetaCobro: some View {
+    private func contenido(_ cobro: Cobro) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                tarjetaCobro(cobro)
+
+                if cobro.estatus == "PENDIENTE" {
+                    seccionResultado
+
+                    if resultado == .cobrado {
+                        seccionMonto
+                    }
+
+                    botonGuardar
+                } else {
+                    avisoRegistrado(cobro.estatus)
+                }
+
+                seccionHistorial
+            }
+            .padding(16)
+        }
+    }
+
+    private var vistaError: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+            Text(errorCarga ?? "No se pudo cargar el cobro.")
+                .multilineTextAlignment(.center)
+            Button("Reintentar") {
+                Task {
+                    await cargar()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Palette.turquesa)
+        }
+        .padding(32)
+    }
+
+    private func tarjetaCobro(_ cobro: Cobro) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Cobro")
                 .font(.headline)
@@ -72,6 +115,8 @@ struct RegistrarVisitaView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
+                Divider()
+                RenglonDato(etiqueta: "Fecha", valor: textoFecha(cobro.fecha))
                 Divider()
                 RenglonDato(etiqueta: "Hora", valor: cobro.hora)
                 Divider()
@@ -146,6 +191,78 @@ struct RegistrarVisitaView: View {
         .disabled(guardando)
     }
 
+    private func avisoRegistrado(_ estatus: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.title2)
+                .foregroundColor(Palette.turquesa)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Este cobro ya se registró")
+                    .fontWeight(.semibold)
+                Text("Estatus: \(estatus.capitalized)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .background(Palette.superficie)
+        .cornerRadius(12)
+    }
+
+    private var seccionHistorial: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Pagos anteriores del donante")
+                .font(.headline)
+
+            if historial.isEmpty {
+                Text("Este donante no tiene pagos anteriores.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(Palette.superficie)
+                    .cornerRadius(12)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(historial) { pago in
+                        HStack(spacing: 12) {
+                            Text(textoFecha(pago.fechaCobro))
+                            Spacer()
+                            Text(textoMonto(pago.estatus == "COBRADO" ? pago.importeCobrado : pago.importe))
+                                .foregroundColor(.secondary)
+                            EtiquetaEstatus(estatus: pago.estatus)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+
+                        if pago.id != historial.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .background(Palette.superficie)
+                .cornerRadius(12)
+            }
+        }
+    }
+
+    private func cargar() async {
+        cargando = true
+        errorCarga = nil
+
+        do {
+            let cobroCargado = try await obtenerCobro(idCobro: idCobro)
+            cobro = cobroCargado
+            montoCobrado = String(format: "%.0f", cobroCargado.importe)
+            historial = (try? await obtenerHistorial(idCobro: idCobro)) ?? []
+        } catch {
+            errorCarga = "No se pudo cargar el cobro. Revisa tu conexión e inténtalo de nuevo."
+        }
+
+        cargando = false
+    }
+
     private func validarYGuardar() {
         switch resultado {
         case .cobrado:
@@ -169,7 +286,7 @@ struct RegistrarVisitaView: View {
 
         Task {
             let registro = RegistroVisita(
-                idCobro: cobro.id,
+                idCobro: idCobro,
                 resultado: resultado.rawValue,
                 montoCobrado: monto,
                 fecha: fechaDeHoy()
@@ -200,6 +317,17 @@ struct RegistrarVisitaView: View {
         formato.locale = Locale(identifier: "es_MX")
         formato.maximumFractionDigits = valor.truncatingRemainder(dividingBy: 1) == 0 ? 0 : 2
         return formato.string(from: NSNumber(value: valor)) ?? "$0"
+    }
+
+    private func textoFecha(_ fecha: String) -> String {
+        let entrada = DateFormatter()
+        entrada.dateFormat = "yyyy-MM-dd"
+        guard let dia = entrada.date(from: fecha) else { return fecha }
+
+        let salida = DateFormatter()
+        salida.locale = Locale(identifier: "es_MX")
+        salida.dateFormat = "d MMM yyyy"
+        return salida.string(from: dia)
     }
 
     private func fechaDeHoy() -> String {
@@ -242,32 +370,31 @@ struct EtiquetaFormaPago: View {
     }
 }
 
-#Preview("Efectivo") {
-    NavigationStack {
-        RegistrarVisitaView(
-            cobro: Cobro(
-                id: 1,
-                hora: "09:00",
-                donante: "Rosa Elena Garza Treviño",
-                direccion: "Río Guadalquivir 412, Col. Del Valle, San Pedro Garza García",
-                importe: 1500,
-                formaPago: "Efectivo"
-            )
-        )
+struct EtiquetaEstatus: View {
+    var estatus: String
+
+    private var color: Color {
+        switch estatus {
+        case "COBRADO": return .green
+        case "RECHAZADO": return .red
+        default: return .orange
+        }
+    }
+
+    var body: some View {
+        Text(estatus.capitalized)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.15))
+            .cornerRadius(6)
     }
 }
 
-#Preview("Cheque") {
+#Preview {
     NavigationStack {
-        RegistrarVisitaView(
-            cobro: Cobro(
-                id: 2,
-                hora: "11:30",
-                donante: "Jorge Alberto Salinas Cantú",
-                direccion: "Av. Vasconcelos 150, Col. Residencial San Agustín, San Pedro Garza García",
-                importe: 2000,
-                formaPago: "Cheque"
-            )
-        )
+        RegistrarVisitaView(idCobro: 1)
     }
 }
