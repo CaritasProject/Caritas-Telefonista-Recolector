@@ -15,6 +15,3 @@ struct Sesion: Codable {
     var usuario: UsuarioSesion
 }
 
-struct UsuarioSesion: Codable {
-    var rol: String
-}
