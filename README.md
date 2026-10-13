@@ -68,7 +68,7 @@ El proyecto usa carpetas sincronizadas de Xcode: un archivo nuevo dentro de `Car
 
 ## 3. Conexión con la API
 
-- **URL base:** `APIClient.urlBase` (`http://10.14.255.42:10206`).
+- **URL base:** `APIClient.urlBase` (`https://losjamones.tc2007b.tec.mx:10206`).
 - **Sesión:** el Login guarda el token en `APIClient.tokenSesion` y cada servicio lo manda en el header `Authorization: Bearer <token>`.
 
 Ejemplo de un servicio:
