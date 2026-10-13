@@ -28,5 +28,6 @@ func iniciarSesion(correo: String, password: String) async throws -> String {
     let jsonDecoder = JSONDecoder()
     let sesion = try jsonDecoder.decode(Sesion.self, from: data)
     APIClient.tokenSesion = sesion.token
+    APIClient.rolSesion = sesion.usuario.rol
     return sesion.usuario.rol
 }
