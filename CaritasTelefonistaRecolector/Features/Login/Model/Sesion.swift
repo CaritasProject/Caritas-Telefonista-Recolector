@@ -14,3 +14,7 @@ struct Sesion: Codable {
     var token: String
     var usuario: UsuarioSesion
 }
+
+struct UsuarioSesion: Codable {
+    var rol: String
+}
