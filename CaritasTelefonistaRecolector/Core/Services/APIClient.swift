@@ -5,5 +5,4 @@ struct APIClient {
 
     // Lo guarda el Login al iniciar sesión; los servicios lo mandan en el header Authorization.
     static var tokenSesion: String? = nil
-    static var rolSesion: String? = nil
 }
