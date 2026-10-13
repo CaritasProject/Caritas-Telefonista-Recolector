@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LoginView: View {
     @Binding var sesionIniciada: Bool
+    @Binding var rol: String
 
     @State private var correo = ""
     @State private var password = ""
@@ -63,7 +64,7 @@ struct LoginView: View {
             cargando = true
             Task {
                 do {
-                    try await iniciarSesion(correo: correo, password: password)
+                    rol = try await iniciarSesion(correo: correo, password: password)
                     sesionIniciada = true
                 } catch {
                     mensajeAlerta = "No se pudo iniciar sesión. Revisa tu correo y contraseña."
@@ -76,5 +77,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView(sesionIniciada: .constant(false))
+    LoginView(sesionIniciada: .constant(false), rol: .constant(""))
 }

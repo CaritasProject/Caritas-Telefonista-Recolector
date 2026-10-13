@@ -1,6 +1,6 @@
 import Foundation
 
-func iniciarSesion(correo: String, password: String) async throws {
+func iniciarSesion(correo: String, password: String) async throws -> String {
     guard let url = URL(string: "\(APIClient.urlBase)/auth/login") else {
         print("URL incorrecto")
         throw URLError(.badURL)
@@ -28,4 +28,5 @@ func iniciarSesion(correo: String, password: String) async throws {
     let jsonDecoder = JSONDecoder()
     let sesion = try jsonDecoder.decode(Sesion.self, from: data)
     APIClient.tokenSesion = sesion.token
+    return sesion.usuario.rol
 }
