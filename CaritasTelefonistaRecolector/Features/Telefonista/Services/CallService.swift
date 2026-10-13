@@ -1,60 +1,23 @@
 import Foundation
 
-struct Donor: Codable {
-    let id: Int
-    let nombre: String
-}
-
-struct CatalogOption: Codable, Identifiable, Hashable {
-    let id: Int
-    let nombre: String
-
-    var isSinglePayment: Bool {
-        nombre.folding(options: .diacriticInsensitive, locale: .current)
-            .localizedCaseInsensitiveContains("pago unico")
-    }
-}
-
-struct FormOptions: Codable {
-    let paymentMethods: [CatalogOption]
-    let frequencies: [CatalogOption]
-    let frequencyTypes: [CatalogOption]
-
-    enum CodingKeys: String, CodingKey {
-        case paymentMethods = "formas_pago"
-        case frequencies = "frecuencias"
-        case frequencyTypes = "tipos_frecuencia"
-    }
-}
-
-struct CallResponse: Codable {
-    let callID: Int
-    let commitmentID: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case callID = "id_llamada"
-        case commitmentID = "id_donativo"
-    }
-}
-
-struct BackendError: Codable {
-    let error: String
-}
-
 struct CallService {
     private let baseURL: URL
     private let session: URLSession
 
     init(
-        baseURL: URL = URL(string: "http://127.0.0.1:5001")!,
+        baseURL: URL = URL(string: APIClient.urlBase)!,
         session: URLSession = .shared
     ) {
         self.baseURL = baseURL
         self.session = session
     }
 
+    func fetchDonors() async throws -> [Donor] {
+        try await request(path: "donantes")
+    }
+
     func fetchDonor(id: Int) async throws -> Donor {
-        try await request(path: "donantes/\(id)")
+        try await request(path: "llamadas/donantes/\(id)")
     }
 
     func fetchFormOptions() async throws -> FormOptions {
@@ -85,6 +48,10 @@ struct CallService {
     private func perform<Response: Decodable>(
         _ request: URLRequest
     ) async throws -> Response {
+        var request = request
+        if let token = APIClient.tokenSesion {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {

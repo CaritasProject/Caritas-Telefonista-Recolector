@@ -118,3 +118,25 @@ Cuerpo del POST:
 Registrar llamada guarda primero la llamada y el compromiso, y después abre Agendar visita con `AgendarVisitaView(idDonativo:registrandoLlamada:)`. La pantalla pide los datos del compromiso a la API con ese id.
 
 El botón "Ver en el mapa" busca las coordenadas de la dirección con `MKGeocodingRequest` (MapKit, iOS 26) y muestra un pin. No usa la ubicación del teléfono, así que no pide permiso.
+
+### 3.2 Registro de llamadas
+
+Después del login se selecciona un donante del listado de la API. `RegisterCallView`
+recibe su `donorID` y el binding `registrandoLlamada`. `CallService` usa
+`APIClient.urlBase` y `APIClient.tokenSesion`, igual que los servicios de `main`.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/llamadas/donantes/<id>` | Nombre e identificador para registrar la llamada; no sustituye la ficha `/donantes/<id>`. |
+| GET | `/llamadas/form-options` | Formas de pago y frecuencias. |
+| POST | `/donantes/<id>/llamadas` | Guarda llamada y compromiso juntos; devuelve `id_llamada` e `id_donativo`. |
+
+Las tres rutas requieren rol `TELEFONISTA`. El backend obtiene el usuario del JWT;
+el cliente no envía un identificador de usuario. Las rutas se implementan en
+`api/routers/llamadas.py` del repositorio `IOS-Project-Caritas`, usando la configuración
+compartida de esa API. Es necesario desplegar esos cambios junto con la app.
+
+Una promesa en efectivo o cheque abre `AgendarVisitaView` con el `id_donativo`
+recién creado. Volver desde la agenda conserva ese compromiso para evitar otro
+registro al continuar. Los demás resultados y formas de pago terminan con una
+confirmación. Se retiró el proyecto independiente Entrega3 y su servidor local.

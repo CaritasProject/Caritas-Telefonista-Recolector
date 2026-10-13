@@ -1,35 +1,13 @@
-//
-//  RegisterCallView.swift
-//  Entrega3
-//
-//  Created by Lorenzo Orrante Roman on 05/10/26.
-//
-
 import SwiftUI
 
-struct CallRequest: Codable {
-    let resultado: String
-    let comentarios: String?
-    let compromiso: CommitmentRequest?
-}
-
-struct CommitmentRequest: Codable {
-    let importe: Double
-    let id_forma_pago: Int
-    let pago_unico: Bool
-    let id_frecuencia: Int?
-    let id_tipo_frecuencia: Int?
-}
-
 struct RegisterCallView: View {
-    private let donorID = 1
+    let donorID: Int
+    @Binding var registrandoLlamada: Bool
+    @State private var savedCall: CallResponse?
+    @State private var showingVisit = false
     private let service = CallService()
-    private let caritasColor = Color(
-        red: 0.00,
-        green: 0.65,
-        blue: 0.72
-    )
-    
+    private let caritasColor = Palette.turquesa
+
     @State private var selectedResult: CallResult = .promise
     @State private var amount: String = ""
     @State private var selectedPaymentMethodID: Int?
@@ -43,26 +21,30 @@ struct RegisterCallView: View {
     @State private var message: UserMessage?
     @State private var pendingRequest: CallRequest?
     @State private var isShowingConfirmation = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            header
-
-            Divider()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     donorInformation
-                    resultSection
-                    commitmentSection
-                    frequencySection
-                    commentsSection
+                    resultSection.disabled(savedCall != nil || isSubmitting)
+                    if selectedResult == .promise {
+                        commitmentSection.disabled(savedCall != nil || isSubmitting)
+                        frequencySection.disabled(savedCall != nil || isSubmitting)
+                    }
+                    commentsSection.disabled(savedCall != nil || isSubmitting)
                     continueButton
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(Color(red: 0.96, green: 0.96, blue: 0.98))
+        }
+        .navigationTitle("Registrar llamada")
+        .navigationDestination(isPresented: $showingVisit) {
+            if let idDonativo = savedCall?.commitmentID {
+                AgendarVisitaView(idDonativo: idDonativo, registrandoLlamada: $registrandoLlamada)
+            }
         }
         .task {
             await loadInitialData()
@@ -71,7 +53,11 @@ struct RegisterCallView: View {
             Alert(
                 title: Text(message.title),
                 message: Text(message.body),
-                dismissButton: .default(Text("Aceptar"))
+                dismissButton: .default(Text("Aceptar")) {
+                    if savedCall != nil && !requiresVisit {
+                        registrandoLlamada = false
+                    }
+                }
             )
         }
         .confirmationDialog(
@@ -94,43 +80,7 @@ struct RegisterCallView: View {
             Text(confirmationMessage)
         }
     }
-    
-    private var header: some View {
-        HStack {
-            Button {
-                // Go back
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                    Text("Atrás")
-                }
-            }
-            
-            Spacer()
-            
-            Text("Registrar llamada")
-                .font(.headline)
-            
-            Spacer()
-            
-            Circle()
-                .fill(
-                        Color(
-                            red: 0.00,
-                            green: 0.65,
-                            blue: 0.72
-                        )
-                    )
-                .frame(width: 40, height: 40)
-                .overlay {
-                    Text("LR")
-                        .foregroundStyle(.white)
-                }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-    }
-    
+
     private var donorInformation: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(donor?.nombre ?? "Cargando donante...")
@@ -145,7 +95,7 @@ struct RegisterCallView: View {
                 .fontWeight(.medium)
         }
     }
-    
+
     enum CallResult: String, CaseIterable, Identifiable {
         case promise
         case noAnswer
@@ -175,7 +125,7 @@ struct RegisterCallView: View {
             }
         }
     }
-    
+
     private var resultSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Resultado")
@@ -191,7 +141,7 @@ struct RegisterCallView: View {
             .tint(caritasColor)
         }
     }
-    
+
     private var commitmentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Compromiso")
@@ -230,7 +180,7 @@ struct RegisterCallView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
-    
+
     private var frequencySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Frecuencia")
@@ -265,7 +215,7 @@ struct RegisterCallView: View {
             }
         }
     }
-    
+
     private var commentsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Comentarios")
@@ -294,7 +244,7 @@ struct RegisterCallView: View {
             .frame(minHeight: 110)
         }
     }
-    
+
     private var continueButton: some View {
         Button {
             prepareSubmission()
@@ -307,7 +257,7 @@ struct RegisterCallView: View {
                     .background(Color.cyan)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             } else {
-                Text("Continuar para agendar visita")
+                Text(requiresVisit ? "Continuar para agendar visita" : "Registrar llamada")
                 .fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -324,7 +274,15 @@ struct RegisterCallView: View {
         }
         .disabled(isLoading || isSubmitting || formOptions == nil)
     }
-    
+
+    private var requiresVisit: Bool {
+        guard selectedResult == .promise,
+              let method = formOptions?.paymentMethods.first(where: { $0.id == selectedPaymentMethodID }) else {
+            return false
+        }
+        return ["EFECTIVO", "CHEQUE"].contains(method.nombre.uppercased())
+    }
+
     private var isSinglePayment: Bool {
         guard let selectedFrequencyID else { return false }
         return formOptions?.frequencies.first {
@@ -342,7 +300,7 @@ struct RegisterCallView: View {
                 throw FormValidationError.missingFrequency
             }
 
-            guard let parsedAmount = Double(amount), parsedAmount > 0 else {
+            guard let parsedAmount = Double(amount), parsedAmount.isFinite, parsedAmount > 0 else {
                 throw FormValidationError.invalidAmount
             }
 
@@ -404,6 +362,10 @@ struct RegisterCallView: View {
     }
 
     private func prepareSubmission() {
+        if savedCall != nil {
+            showingVisit = requiresVisit
+            return
+        }
         do {
             pendingRequest = try buildRequest()
             isShowingConfirmation = true
@@ -417,7 +379,7 @@ struct RegisterCallView: View {
 
     @MainActor
     private func loadInitialData() async {
-        guard !isLoading else { return }
+        guard !isLoading, formOptions == nil else { return }
         isLoading = true
         defer { isLoading = false }
 
@@ -454,6 +416,11 @@ struct RegisterCallView: View {
                 donorID: donorID,
                 request: request
             )
+            savedCall = response
+            if requiresVisit, response.commitmentID != nil {
+                showingVisit = true
+                return
+            }
             message = UserMessage(
                 title: "Llamada registrada",
                 body: "Se creó la llamada #\(response.callID)."
@@ -494,5 +461,7 @@ private enum FormValidationError: LocalizedError {
 }
 
 #Preview {
-    RegisterCallView()
+    NavigationStack {
+        RegisterCallView(donorID: 1, registrandoLlamada: .constant(true))
+    }
 }

@@ -318,5 +318,5 @@ struct AgendarVisitaView: View {
 }
 
 #Preview {
-    LoginView()
+    LoginView(sesionIniciada: .constant(false))
 }
