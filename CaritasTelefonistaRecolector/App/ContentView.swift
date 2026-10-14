@@ -8,9 +8,9 @@ struct ContentView: View {
         if sesionIniciada {
             NavigationStack {
                 if rol == "TELEFONISTA" {
-                    LlamadasDelDiaView()
+                    LlamadasDelDiaView(sesionIniciada: $sesionIniciada)
                 } else if rol == "RECOLECTOR" {
-                    CobrosDelDiaView()
+                    CobrosDelDiaView(sesionIniciada: $sesionIniciada)
                 } else {
                     Text("Este usuario no tiene acceso a la app.")
                 }

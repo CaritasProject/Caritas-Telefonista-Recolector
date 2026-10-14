@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct LlamadasDelDiaView: View {
+    @Binding var sesionIniciada: Bool
+
     @State private var llamadas: LlamadasDelDia? = nil
     @State private var cargando = true
 
@@ -15,9 +17,7 @@ struct LlamadasDelDiaView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Spacer()
-                    if let llamadas = llamadas {
-                        AvatarIniciales(iniciales: llamadas.iniciales)
-                    }
+                    AvatarPerfil(sesionIniciada: $sesionIniciada)
                 }
                 .frame(height: 44)
 
@@ -162,6 +162,6 @@ struct LlamadasDelDiaView: View {
 
 #Preview {
     NavigationStack {
-        LlamadasDelDiaView()
+        LlamadasDelDiaView(sesionIniciada: .constant(true))
     }
 }

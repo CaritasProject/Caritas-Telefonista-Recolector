@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct CobrosDelDiaView: View {
+    @Binding var sesionIniciada: Bool
+
     @State private var cobros: [Cobro] = []
     @State private var cargando = false
     @State private var mensajeError = ""
-    @State private var iniciales = "JS"
 
     var body: some View {
         ZStack {
@@ -15,13 +16,7 @@ struct CobrosDelDiaView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Spacer()
-                        Text(iniciales)
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Palette.turquesa)
-                            .clipShape(Circle())
+                        AvatarPerfil(sesionIniciada: $sesionIniciada)
                     }
                     Text("Cobros del día")
                         .font(.largeTitle)
@@ -136,6 +131,6 @@ struct CobrosDelDiaView: View {
 
 #Preview {
     NavigationStack {
-        CobrosDelDiaView()
+        CobrosDelDiaView(sesionIniciada: .constant(true))
     }
 }
