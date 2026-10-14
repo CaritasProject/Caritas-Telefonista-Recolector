@@ -8,7 +8,7 @@ struct ContentView: View {
         if sesionIniciada {
             NavigationStack {
                 if rol == "TELEFONISTA" {
-                    SeleccionarDonanteView()
+                    LlamadasDelDiaView()
                 } else if rol == "RECOLECTOR" {
                     CobrosDelDiaView()
                 } else {
