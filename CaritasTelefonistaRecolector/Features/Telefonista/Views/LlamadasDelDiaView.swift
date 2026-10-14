@@ -7,6 +7,9 @@ struct LlamadasDelDiaView: View {
     @State private var mostrarAlerta = false
     @State private var mensajeAlerta = ""
 
+    @State private var seleccionada: LlamadaPendiente? = nil
+    @State private var registrandoLlamada = false
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
@@ -46,7 +49,12 @@ struct LlamadasDelDiaView: View {
                                         .padding(16)
                                 } else {
                                     ForEach(llamadas.porLlamar) { llamada in
-                                        RenglonLlamadaPendiente(llamada: llamada)
+                                        Button {
+                                            seleccionada = llamada
+                                            registrandoLlamada = true
+                                        } label: {
+                                            RenglonLlamadaPendiente(llamada: llamada)
+                                        }
                                         if llamada.id != llamadas.porLlamar.last?.id {
                                             Divider()
                                                 .padding(.leading, 16)
@@ -82,6 +90,18 @@ struct LlamadasDelDiaView: View {
                             .background(Palette.superficie)
                             .cornerRadius(12)
                         }
+
+                        NavigationLink {
+                            SeleccionarDonanteView()
+                        } label: {
+                            Text("Llamar a otro donante")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Palette.turquesaOscuro)
+                        .controlSize(.large)
                     } else if cargando {
                         ProgressView("Cargando llamadas…")
                             .frame(maxWidth: .infinity)
@@ -105,6 +125,11 @@ struct LlamadasDelDiaView: View {
         }
         .background(Palette.fondo)
         .toolbar(.hidden)
+        .navigationDestination(isPresented: $registrandoLlamada) {
+            if let seleccionada = seleccionada {
+                RegisterCallView(donorID: seleccionada.idDonante, registrandoLlamada: $registrandoLlamada)
+            }
+        }
         .onAppear {
             cargarLlamadas()
         }
