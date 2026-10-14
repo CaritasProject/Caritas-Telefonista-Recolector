@@ -10,7 +10,7 @@ struct ContentView: View {
                 if rol == "TELEFONISTA" {
                     SeleccionarDonanteView()
                 } else if rol == "RECOLECTOR" {
-                    SeleccionarCobroView()
+                    CobrosDelDiaView()
                 } else {
                     Text("Este usuario no tiene acceso a la app.")
                 }
