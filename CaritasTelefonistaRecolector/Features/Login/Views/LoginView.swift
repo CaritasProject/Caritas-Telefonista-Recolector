@@ -13,13 +13,10 @@ struct LoginView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                Image(systemName: "person.2.badge.gearshape.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(Palette.turquesa)
-
-                Text("Cáritas de Monterrey")
-                    .font(.title)
-                    .fontWeight(.bold)
+                Image("LogoCaritas")
+                    .resizable(resizingMode: .stretch)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 196)
 
                 Text("Telefonista y Recolector")
                     .font(.subheadline)
