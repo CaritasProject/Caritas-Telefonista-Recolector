@@ -133,6 +133,11 @@ struct LlamadasDelDiaView: View {
         .onAppear {
             cargarLlamadas()
         }
+        .onChange(of: registrandoLlamada) { oldValue, newValue in
+            if newValue == false {
+                reprogramarSeleccionada()
+            }
+        }
         .alert(mensajeAlerta, isPresented: $mostrarAlerta) {
             Button("OK") {}
         }
@@ -142,12 +147,27 @@ struct LlamadasDelDiaView: View {
         cargando = true
         Task {
             do {
-                llamadas = try await obtenerLlamadasDelDia()
+                let pendientes = try await obtenerLlamadasPendientes()
+                let contactados = try await obtenerLlamadasContactadas()
+                llamadas = LlamadasDelDia(porLlamar: pendientes, contactados: contactados)
             } catch {
                 mensajeAlerta = "No se pudieron cargar las llamadas. Revisa tu conexión e intenta de nuevo."
                 mostrarAlerta.toggle()
             }
             cargando = false
+        }
+    }
+
+    func reprogramarSeleccionada() {
+        if let seleccionada = seleccionada {
+            Task {
+                do {
+                    try await reprogramarLlamada(idProgramada: seleccionada.id)
+                } catch {
+                    print("La llamada no se reprogramó")
+                }
+                cargarLlamadas()
+            }
         }
     }
 

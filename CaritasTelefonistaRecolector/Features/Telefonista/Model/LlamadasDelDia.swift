@@ -1,7 +1,6 @@
 import Foundation
 
-struct LlamadasDelDia: Codable {
-    var iniciales: String
+struct LlamadasDelDia {
     var porLlamar: [LlamadaPendiente]
     var contactados: [LlamadaRealizada]
 }
