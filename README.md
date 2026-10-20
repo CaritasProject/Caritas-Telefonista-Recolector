@@ -14,7 +14,7 @@ Aplicación iOS (SwiftUI) para los roles operativos de **Telefonista** y **Recol
 | Ambos | Login | Correo institucional y contraseña; el rol define la pantalla de entrada. |
 | Telefonista | Llamadas del día | Donantes por llamar y contactados hoy. |
 | Telefonista | Registrar llamada | Resultado, compromiso, forma de pago y frecuencia. |
-| Telefonista | Agendar visita | Fecha, hora y dirección; la zona sale del municipio. Solo para pagos en efectivo o cheque. |
+| Telefonista | Agendar visita | Monto comprometido resaltado; fecha, hora y dirección con vista en el mapa; la zona sale del municipio. Pide confirmación antes de guardar y al terminar regresa a Llamadas del día. Solo para pagos en efectivo o cheque. |
 | Recolector | Cobros del día | Ruta por horario con dirección e importe. |
 | Recolector | Registrar visita | Cobrado, donante ausente o cancelado. |
 | Ambos | Perfil | Hoja desde el avatar con los datos del usuario y cerrar sesión. |
@@ -68,7 +68,7 @@ El proyecto usa carpetas sincronizadas de Xcode: un archivo nuevo dentro de `Car
 
 ## 3. Conexión con la API
 
-- **URL base:** `APIClient.urlBase` (`http://10.14.255.42:10206`).
+- **URL base:** `APIClient.urlBase` (`https://losjamones.tc2007b.tec.mx:10206`).
 - **Sesión:** el Login guarda el token en `APIClient.tokenSesion` y cada servicio lo manda en el header `Authorization: Bearer <token>`.
 
 Ejemplo de un servicio:
@@ -98,6 +98,7 @@ func obtenerMunicipios() async throws -> [Municipio] {
 
 | Método | Ruta | Uso |
 |---|---|---|
+| GET | `/visitas/compromisos/<id_donativo>` | Donante, monto, forma de pago, frecuencia y visita pendiente del compromiso (solo rol Telefonista). |
 | GET | `/visitas/municipios` | Municipios con su zona de recolección. |
 | POST | `/visitas` | Agenda la visita (solo rol Telefonista). |
 
@@ -114,4 +115,28 @@ Cuerpo del POST:
 }
 ```
 
-Registrar llamada guarda primero la llamada y el compromiso, y después abre Agendar visita con `AgendarVisitaView(compromiso:registrandoLlamada:)`.
+Registrar llamada guarda primero la llamada y el compromiso, y después abre Agendar visita con `AgendarVisitaView(idDonativo:registrandoLlamada:)`. La pantalla pide los datos del compromiso a la API con ese id.
+
+El botón "Ver en el mapa" busca las coordenadas de la dirección con `MKGeocodingRequest` (MapKit, iOS 26) y muestra un pin. No usa la ubicación del teléfono, así que no pide permiso.
+
+### 3.2 Registro de llamadas
+
+Después del login se selecciona un donante del listado de la API. `RegisterCallView`
+recibe su `donorID` y el binding `registrandoLlamada`. `CallService` usa
+`APIClient.urlBase` y `APIClient.tokenSesion`, igual que los servicios de `main`.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/llamadas/donantes/<id>` | Nombre e identificador para registrar la llamada; no sustituye la ficha `/donantes/<id>`. |
+| GET | `/llamadas/form-options` | Formas de pago y frecuencias. |
+| POST | `/donantes/<id>/llamadas` | Guarda llamada y compromiso juntos; devuelve `id_llamada` e `id_donativo`. |
+
+Las tres rutas requieren rol `TELEFONISTA`. El backend obtiene el usuario del JWT;
+el cliente no envía un identificador de usuario. Las rutas se implementan en
+`api/routers/llamadas.py` del repositorio `IOS-Project-Caritas`, usando la configuración
+compartida de esa API. Es necesario desplegar esos cambios junto con la app.
+
+Una promesa en efectivo o cheque abre `AgendarVisitaView` con el `id_donativo`
+recién creado. Volver desde la agenda conserva ese compromiso para evitar otro
+registro al continuar. Los demás resultados y formas de pago terminan con una
+confirmación. Se retiró el proyecto independiente Entrega3 y su servidor local.
