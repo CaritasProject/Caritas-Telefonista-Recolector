@@ -4,6 +4,7 @@ struct CobrosDelDiaView: View {
     @Binding var sesionIniciada: Bool
 
     @State private var cobros: [Cobro] = []
+    @State private var textoFecha = " "
     @State private var cargando = false
     @State private var mensajeError = ""
 
@@ -25,7 +26,7 @@ struct CobrosDelDiaView: View {
                 .padding(.bottom, 10)
                 .background(Palette.superficie)
 
-                Text(fechaDeHoy())
+                Text(textoFecha)
                     .font(.headline)
                     .fontWeight(.regular)
                     .foregroundColor(.gray)
@@ -99,33 +100,14 @@ struct CobrosDelDiaView: View {
         cargando = true
         mensajeError = ""
         do {
-            let pendientes = try await obtenerPendientes()
-            let hoy = fechaCorta()
-            var deHoy: [Cobro] = []
-            for cobro in pendientes {
-                if cobro.fecha.hasPrefix(hoy) {
-                    deHoy.append(cobro)
-                }
-            }
-            cobros = deHoy.sorted { $0.hora < $1.hora }
+            // La fecha y el filtro de "hoy" los decide el API, no el reloj del teléfono.
+            let fechaDelDia = try await obtenerFechaDeHoy()
+            textoFecha = fechaDelDia.texto
+            cobros = try await obtenerCobrosDeHoy()
         } catch {
             mensajeError = "No se pudieron cargar los cobros."
         }
         cargando = false
-    }
-
-    func fechaDeHoy() -> String {
-        let formato = DateFormatter()
-        formato.locale = Locale(identifier: "es_MX")
-        formato.dateFormat = "EEEE, d 'de' MMMM"
-        let texto = formato.string(from: Date())
-        return texto.prefix(1).uppercased() + texto.dropFirst()
-    }
-
-    func fechaCorta() -> String {
-        let formato = DateFormatter()
-        formato.dateFormat = "yyyy-MM-dd"
-        return formato.string(from: Date())
     }
 }
 
