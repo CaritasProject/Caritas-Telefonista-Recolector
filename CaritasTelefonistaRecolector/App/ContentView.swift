@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var sesionIniciada = false
-    @State private var rol = ""
+    @AppStorage("sesionIniciada") private var sesionIniciada = false
+    @AppStorage("rol") private var rol = ""
 
     var body: some View {
         if sesionIniciada {
