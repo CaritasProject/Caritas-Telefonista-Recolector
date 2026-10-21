@@ -15,6 +15,7 @@ struct RenglonCobro: View {
                     Text(cobro.donante)
                         .font(.title3)
                         .foregroundColor(.black)
+                        .multilineTextAlignment(.leading)
                     Text(cobro.direccion)
                         .font(.subheadline)
                         .foregroundColor(.gray)
